@@ -1,0 +1,13 @@
+#version 330 core
+
+layout(location = 0) in vec3 vertexPosition_modelspace;
+
+uniform mat4 MVP;
+
+#define PI 3.1415
+
+void main(){
+    vec4 pos = MVP * vec4(vertexPosition_modelspace,1);
+	gl_Position =  vec4(pos.x, sin(2 * PI* pos.x), pos.z, pos.w);
+}
+
