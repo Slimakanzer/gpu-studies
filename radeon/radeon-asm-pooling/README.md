@@ -16,7 +16,7 @@ sudo apt-get -y install cmake libboost-program-options-dev liblist-moreutils-per
 ### Host Machine
 
 * Visual Studio 2017/2019
-* [RadeonAsmDebugger Extension for Visual Studio](https://github.com/vsrad/radeon-asm-tools)
+* [RadeonAsmDebugger Extension for Visual Studio](../README.md#Installation)
 
 ## Building and Running
 
@@ -31,7 +31,7 @@ cd build
 cmake ..
 make
 ```
-3. Download latest release, copy [DebugServerLinux64](https://github.com/vsrad/radeon-asm-tools/releases) and navigate to this directory
+3. Navigate to the `RadeonPooling/common/debugger/DebugServerLinux64` directory
 4. Launch the debug server with `chmod +x RadeonAsmDebugServer && ./RadeonAsmDebugServer`
 
 ### Host machine

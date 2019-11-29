@@ -33,13 +33,13 @@ export BREAKPOINT_SCRIPT_WATCHES="$watches"
 export ASM_DBG_BUF_SIZE="$debug_size"
 export DEBUGGER_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-"$DEBUGGER_DIR/../../build/gfx9/fp32_pooling" 		\
-	--clang "$DEBUGGER_DIR/dbg_clang_wrapper.sh" 	\
-	--asm "$src_path" 								\
-	--include "$DEBUGGER_DIR/include" 				\
-	--output_path "./tmp_dir/fp32_pooling.co" 		\
-	--debug_path "$dump_path" 						\
-	--debug_size $ASM_DBG_BUF_SIZE	 				\
+"$DEBUGGER_DIR/../../build/gfx9/fp32_pooling"        \
+	--clang "$DEBUGGER_DIR/dbg_clang_wrapper.sh" \
+	--asm "$src_path"                            \
+	--include "$DEBUGGER_DIR/../../gfx9/include" \
+	--output_path "./tmp_dir/fp32_pooling.co"    \
+	--debug_path "$dump_path"                    \
+	--debug_size $ASM_DBG_BUF_SIZE               \
 	$pooling_args
 
 echo
