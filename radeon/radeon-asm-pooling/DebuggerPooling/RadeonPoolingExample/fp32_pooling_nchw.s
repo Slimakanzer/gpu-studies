@@ -6,8 +6,8 @@
 .GPR_ALLOC_BEGIN
   kernarg = 0
   gid_x = 2
-  flt_min = 0xffffffff
-  gsize = 256
+  FLT_NEG_INF = 0xffffffff
+  gsize = 64
   // s[0:1] = kernarg addr
   // s[2] = gid_x
   .SGPR_ALLOC_FROM 3
@@ -31,14 +31,13 @@
   .SGPR_ALLOC base_offset
   .SGPR_ALLOC base_out_offset
   .SGPR_ALLOC soffset
-  .SGPR_ALLOC soffset_tmp
   .SGPR_ALLOC sout_offset
   .SGPR_ALLOC loop_filter_x
   .SGPR_ALLOC loop_filter_y
   .SGPR_ALLOC loop_x
   .SGPR_ALLOC step_y
   .SGPR_ALLOC step_x
-  .SGPR_ALLOC step_next_out_row
+  .SGPR_ALLOC step_in
   .SGPR_ALLOC step_out
 
   .VGPR_ALLOC_FROM 0
@@ -82,12 +81,9 @@ hello_world:
   // s[stride_w] = stride input tensor width
   // s[out_h] = output height
   // s[out_w] = output width
-  s_load_dwordx2    s[base_in:base_in+1], s[kernarg:kernarg+1], 0x00
-  s_load_dwordx2    s[base_out:base_out+1], s[kernarg:kernarg+1], 0x08
-  s_load_dwordx8    s[n:pad_w], s[kernarg:kernarg+1], 0x10
-  s_load_dwordx4    s[stride_h:out_w], s[kernarg:kernarg+1], 0x30
+  s_load_dwordx16    s[base_in:out_w], s[kernarg:kernarg+1], 0x00
 
-  v_mov_b32         v[vpool_item_max], flt_min           // set initial value to flt_min
+  v_mov_b32         v[vpool_item_max], FLT_NEG_INF           // set initial value to flt_min
   v_lshlrev_b32     v[voffset_out], 2, v[tid]
   s_waitcnt         0
 
@@ -104,8 +100,8 @@ hello_world:
   s_lshl_b32        s[base_out_offset], s[base_out_offset], 2
 
   // setup steps
-  s_mul_i32         s[step_next_out_row], s[w], s[stride_h]
-  s_lshl_b32        s[step_next_out_row], s[step_next_out_row], 2
+  s_mul_i32         s[step_in], s[w], s[stride_h]
+  s_lshl_b32        s[step_in], s[step_in], 2
   s_lshl_b32        s[step_out], s[out_w], 2
 
   s_mul_i32         s[step_x], s[stride_w], gsize * 4
@@ -120,7 +116,6 @@ hello_world:
   // setup initial states
   .GPR_REUSE out_h, loop_y
   s_mul_i32         s[step_y], s[w], 4
-  v_lshlrev_b32     v[voffset], 2, v[vindex_x]  // setup Voffset
 
   pooling_loop_y:
     s_mov_b32         s[soffset], 0
@@ -137,13 +132,14 @@ hello_world:
       s_mov_b32         s[loop_filter_y], s[r]
 
       pooling_loop_filter_y:
-        s_mov_b32         s[soffset_tmp], s[soffset]
+        v_lshlrev_b32     v[voffset], 2, v[vindex_x]
+        v_add_u32         v[voffset], v[voffset], s[soffset]
         s_mov_b32         s[loop_filter_x], s[s]
 
         pooling_loop_filter_x:
-          buffer_load_dword v[vpool_item], v[voffset], s[in_desc:in_desc+3], s[soffset_tmp] offen
+          buffer_load_dword v[vpool_item], v[voffset], s[in_desc:in_desc+3], 0 offen
           s_sub_u32         s[loop_filter_x], s[loop_filter_x], 1
-          s_add_u32         s[soffset_tmp], s[soffset_tmp], 4
+          v_add_u32         v[voffset], v[voffset], 4
           s_waitcnt         0
 
           v_max_f32         v[vpool_item_max], v[vpool_item_max], v[vpool_item] // calculate max value
@@ -167,7 +163,7 @@ hello_world:
       s_cbranch_scc1    pooling_loop_x
 
     // to the next output row
-    s_add_u32         s[base_offset], s[base_offset], s[step_next_out_row]
+    s_add_u32         s[base_offset], s[base_offset], s[step_in]
     s_add_u32         s[base_out_offset], s[base_out_offset], s[step_out]
 
     s_sub_u32         s[loop_y], s[loop_y], 1
