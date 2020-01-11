@@ -28,7 +28,6 @@ private:
   std::string asm_source;
   std::string include_dir;
   std::string output_path;
-  std::string debug_path;
 
 public:
   HalfVectorPooling(int argc, const char **argv, 
@@ -36,8 +35,6 @@ public:
     std::string &asm_source, 
     std::string &include_dir,
     std::string &output_path,
-    std::string &debug_path,
-    unsigned &debug_size,
     unsigned &benchmark_times,
     unsigned &group_size,
     unsigned &n,
@@ -50,7 +47,7 @@ public:
     unsigned &pad_w,
     unsigned &stride_h,
     unsigned &stride_w)
-    : Dispatch(argc, argv, debug_size, benchmark_times), 
+    : Dispatch(argc, argv, benchmark_times), 
       n{n},
       c{c},
       h{h},
@@ -67,25 +64,11 @@ public:
       clang{std::move(clang) }, 
       asm_source{std::move(asm_source) }, 
       include_dir{std::move(include_dir) },
-      output_path{std::move(output_path) },
-      debug_path{std::move(debug_path) } { }
+      output_path{std::move(output_path) } { }
 
   bool SetupCodeObject() override {
-    std::stringstream stream;
-
-    if (debug) {
-      stream << debug->LocalPtr();
-      std::string ptr_string = stream.str();
-      setenv("ASM_DBG_BUF_ADDR", ptr_string.c_str(), 1);
-    }
-
-    stream.str("");
-    stream << "cat  " 
-      << asm_source << " | " 
-      << clang << " -x assembler -target amdgcn--amdhsa -mcpu=gfx900 -mno-code-object-v3" 
-      << " -I" << include_dir << " -o " << output_path << " -";
-
-    std::string clang_call = stream.str();
+    std::string clang_call = clang + " " + asm_source + " -x assembler -target amdgcn--amdhsa -mcpu=gfx900 -mno-code-object-v3 -I"
+      + include_dir + " -o " + output_path;
     std::cout << "Execute: " << clang_call << std::endl;
     
     if (system(clang_call.c_str())) { output << "Error: build source kernel failed - " << asm_source << std::endl; return false; }
@@ -124,16 +107,6 @@ public:
   bool Verify() override {
     if (!CopyFrom(out)) { output << "Error: failed to copy from local" << std::endl; return false; }
     bool ok = true;
-
-    if (debug) {
-      if (!CopyFrom(debug)) { output << "Error: failed to copy flom debug buffer" << std::endl; return false; }
-
-      std::ofstream fs(debug_path, std::ios::out | std::ios::binary);
-      if (!fs.is_open()) { output << "Error: failed to write debug buffer" << std:: endl; return false; }
-
-      fs.write(debug->Ptr<char>(), debug->Size());
-      fs.close();
-    }
 
     for (unsigned n_loop{0}; n_loop < n; n_loop++){
       output << "Batch: " << n_loop << std::endl;
@@ -189,8 +162,6 @@ int main(int argc, const char** argv) {
     ("asm", value<std::string>()->default_value("fp32_pooling_x1.s"), "kernel source")
     ("include", value<std::string>()->default_value("."), "inclide directories")
     ("output_path", value<std::string>()->default_value("./output.o"), "kernel binary output path")
-    ("debug_path", value<std::string>()->default_value("debug_result"), "debug binary path")
-    ("debug_size", value<unsigned>()->default_value(0), "debug size buffer")
     ("benchmark_times", value<unsigned>()->default_value(0), "benchmark loop times")
     ("group_size", value<unsigned>()->default_value(64), "group size")
     ("n", value<unsigned>()->default_value(1), "batch size")
@@ -217,8 +188,6 @@ int main(int argc, const char** argv) {
     std::string asm_source = vm["asm"].as<std::string>();;
     std::string include_dir = vm["include"].as<std::string>();
     std::string output_path = vm["output_path"].as<std::string>();
-    std::string debug_path = vm["debug_path"].as<std::string>();
-    unsigned debug_size = vm["debug_size"].as<unsigned>();
     unsigned benchmark_times = vm["benchmark_times"].as<unsigned>();
     unsigned group_size = vm["group_size"].as<unsigned>();
     unsigned n = vm["n"].as<unsigned>();
@@ -237,8 +206,6 @@ int main(int argc, const char** argv) {
       asm_source,
       include_dir,
       output_path,
-      debug_path,
-      debug_size,
       benchmark_times,
       group_size,
       n, c, h, w,

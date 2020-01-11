@@ -51,10 +51,9 @@
 namespace amd {
 namespace dispatch {
 
-Dispatch::Dispatch(int argc, const char** argv, unsigned debug_size = 0, unsigned benchmark_times = 0)
+Dispatch::Dispatch(int argc, const char** argv, unsigned benchmark_times = 0)
   : queue_size(0),
     queue(0),
-    debug_size(debug_size),
     benchmark_times(benchmark_times)
 {
   agent.handle = 0;
@@ -279,7 +278,7 @@ bool Dispatch::LoadCodeObjectFromFile(const std::string& filename)
               std::istreambuf_iterator<char>());
 
 */
-  hsa_status_t status = hsa_code_object_deserialize(ptr, size, NULL, &code_object);
+  hsa_status_t status = hsa_code_object_reader_create_from_memory(ptr, size, &co_reader);
   if (status != HSA_STATUS_SUCCESS) { return HsaError("Failed to deserialize code object", status); }
   return true;
 }
@@ -287,20 +286,6 @@ bool Dispatch::LoadCodeObjectFromFile(const std::string& filename)
 bool Dispatch::SetupCodeObject()
 {
   return false;
-}
-
-bool Dispatch::SetupDebugBuffer()
-{
-  if (debug_size) {
-    debug = AllocateBuffer(debug_size);
-
-    if (!debug) {
-      output << "Error: debug buffer allocate error" << std::endl;
-      return false;
-    }
-  }
-
-  return true; 
 }
 
 bool Dispatch::SetupExecutable()
@@ -314,8 +299,8 @@ bool Dispatch::SetupExecutable()
   if (status != HSA_STATUS_SUCCESS) { return HsaError("hsa_executable_create failed", status); }
 
   // Load code object
-  status = hsa_executable_load_code_object(executable, agent, code_object, NULL);
-  if (status != HSA_STATUS_SUCCESS) { return HsaError("hsa_executable_load_code_object failed", status); }
+  status = hsa_executable_load_agent_code_object(executable, agent, co_reader, NULL, NULL);
+  if (status != HSA_STATUS_SUCCESS) { return HsaError("hsa_executable_load_agent_code_object failed", status); }
 
   // Freeze executable
   status = hsa_executable_freeze(executable, NULL);
@@ -473,55 +458,24 @@ bool Dispatch::Run()
   bool res =
     Init() &&
     InitDispatch() &&
-    SetupDebugBuffer() &&
     SetupExecutable() &&
     Setup() &&
     RunDispatch() &&
     Wait() &&
     Verify();
+
+  hsa_shut_down();
+
   std::string out = output.str();
-  if (!out.empty()) {
-    std::cout << out << std::endl;
-  }
+  if (!out.empty()) std::cout << out << std::endl;
+
   std::cout << (res ? "Success" : "Failed") << std::endl;
   return res;
 }
 
 bool Dispatch::RunBenchmark()
 {
-    bool res;
-    double benchmark_time{0};
-    unsigned i{0};
-
-    for (; i < benchmark_times; i++) {
-      output << "Iteration: " << i << std::endl;
-      res =
-        Init() &&
-        InitDispatch() &&
-        SetupDebugBuffer() &&
-        SetupExecutable() &&
-        Setup() &&
-        RunDispatch() &&
-        Wait() &&
-        Verify();
-      
-      if (res) {
-        benchmark_time += exec_time;
-      }
-      else {
-        break;
-      }
-    }
-
-    benchmark_time = benchmark_time / benchmark_times;
-    if (!res) {
-      std::string out = output.str();
-      if (!out.empty()) {
-        std::cout << out << std::endl;
-      }
-    }
-    std::cout << (res ? "Success total exec time: " : "Failed at iteration: ") << (res ? benchmark_time : i) << std::endl;
-    return res;
+  return Run();
 }
 
 int Dispatch::RunMain()

@@ -1,0 +1,12 @@
+[agent]
+log = "-"
+[debug-buffer]
+size = 4048576
+dump-file = "tmp_dir/debug_result"
+[code-object-dump]
+log = "-"
+directory = "tmp_dir/"
+[[code-object-swap]]
+when-call-count = 1
+load-file = "tmp_dir/debug.co"
+exec-before-load = """bash -o pipefail -c '  perl debugger/breakpoint.pl -ba $ASM_DBG_BUF_ADDR -bs $ASM_DBG_BUF_SIZE     -l 172 -w "v[vpool_item]" -s 96 -r s0 -t 0 -p  /home/stud/gleb/gpu-studies/radeon/radeon-asm-pooling/RadeonPooling/gfx9/fp32_pooling_nchw.s   | /opt/rocm/opencl/bin/x86_64/clang -x assembler -target amdgcn--amdhsa -mcpu=gfx900 -mno-code-object-v3     -Igfx9/include -o tmp_dir/debug.co -'"""

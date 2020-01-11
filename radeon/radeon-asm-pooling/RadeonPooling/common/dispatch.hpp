@@ -90,9 +90,8 @@ private:
   uint32_t group_dynamic_size;
   void *kernarg;
   size_t kernarg_offset;
-  hsa_code_object_t code_object;
+  hsa_code_object_reader_t co_reader;
   hsa_executable_t executable;
-  unsigned debug_size;
   unsigned benchmark_times;
 
 
@@ -104,13 +103,12 @@ private:
 
 protected:
   std::ostringstream output;
-  Buffer* debug;
   double exec_time;
   bool Error(const char *msg);
   bool HsaError(const char *msg, hsa_status_t status = HSA_STATUS_SUCCESS);
 
 public:
-  Dispatch(int argc, const char** argv, unsigned debug_size, unsigned benchmark_times);
+  Dispatch(int argc, const char** argv, unsigned benchmark_times);
 
   void SetAgent(hsa_agent_t agent) { assert(!this->agent.handle); this->agent = agent; }
   bool HasAgent() const { return agent.handle != 0; }
@@ -128,7 +126,6 @@ public:
   int RunMain();
   virtual bool SetupExecutable();
   virtual bool SetupCodeObject();
-  virtual bool SetupDebugBuffer();
   bool LoadCodeObjectFromFile(const std::string& filename);
   void* AllocateLocalMemory(size_t size);
   void* AllocateGPULocalMemory(size_t size);
