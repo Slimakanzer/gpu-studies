@@ -2,28 +2,13 @@
   "DebuggerOptions": {
     "Watches": [
       {
-        "Name": "s[step_out]",
-        "Type": "Int",
-        "IsAVGPR": false
-      },
-      {
-        "Name": "s[base_offset_out]",
-        "Type": "Int",
-        "IsAVGPR": false
-      },
-      {
-        "Name": "v[vpool_item_max]",
+        "Name": "v[vpool_item]",
         "Type": "Float",
-        "IsAVGPR": false
-      },
-      {
-        "Name": "s[base_out]",
-        "Type": "Hex",
         "IsAVGPR": false
       }
     ],
-    "Counter": 1,
-    "AppArgs": "--n 2 --c 2 --h 4 --w 4 --r 2 --s 2 --stride_h 1 --stride_w 1",
+    "Counter": 0,
+    "AppArgs": "--n 2 --c 2 --h 1024 --w 1024 --r 2 --s 2 --stride_h 2 --stride_w 2 --group_size 64",
     "BreakArgs": ""
   },
   "VisualizerOptions": {
@@ -53,61 +38,23 @@
       },
       "Debugger": {
         "Executable": "bash",
-        "Arguments": "$(RadDebugWorkDir)/common/debugger/pooling_debug.sh -w \"$(RadWatches)\" -l \"$(RadBreakLine)\" -v \"$(RadDebugAppArgs)\" -p \"$(RadDebugBreakArgs)\" -f \"$(RadDebugWorkDir)/gfx9/$(RadActiveSourceFile)\" -o \"$(RadDebugDataOutputPath)\"  -s \"4194304\" -t \"$(RadCounter)\"",
-        "WorkingDirectory": "/home/stud/gleb/radeon-asm-pooling/RadeonPooling",
+        "Arguments": "$(RadDebugWorkDir)/debugger/pooling_debug.sh -w \"$(RadWatches)\" -l \"$(RadBreakLine)\" -v \"$(RadDebugAppArgs)\" -f \"$(RadDebugWorkDir)/gfx9/$(RadActiveSourceFile)\" -o \"$(RadDebugDataOutputPath)\" -t \"$(RadCounter)\"",
+        "WorkingDirectory": "/home/stud/gleb/gpu-studies/radeon/radeon-asm-pooling/RadeonPooling",
         "OutputPath": "$(RadDebugWorkDir)/tmp_dir/debug_result",
         "BinaryOutput": true,
+        "OutputOffset": 0,
         "ParseValidWatches": false,
         "ValidWatchesFilePath": "",
         "RunAsAdmin": false,
-        "TimeoutSecs": 0,
-        "OutputOffset": 0
+        "TimeoutSecs": 0
       },
-      "Disassembler": {
+      "Preprocessor": {
         "Executable": "",
         "Arguments": "",
-        "WorkingDirectory": "",
-        "OutputPath": "",
-        "LocalOutputCopyPath": "",
-        "LineMarker": ""
-      },
-      "Profiler": {
-        "Executable": "",
-        "Arguments": "",
-        "WorkingDirectory": "",
-        "OutputPath": "",
-        "ViewerExecutable": "",
-        "ViewerArguments": "",
-        "LocalOutputCopyPath": "",
-        "RunAsAdmin": false
-      },
-      "Build": {
-        "Executable": "clang",
-        "Arguments": " -x assembler -target amdgcn--amdhsa -mcpu=gfx900 -mno-code-object-v3 -I$(RadDeployDir)/include $(RadDeployDir)/$(RadActiveSourceFile)",
         "WorkingDirectory": "$(RadDeployDir)",
-        "PreprocessedSource": ""
-      }
-    },
-    "benchmark": {
-      "General": {
-        "DeployDirectory": "$(RadDebugWorkDir)/gfx9",
-        "RemoteMachine": "172.31.27.3",
-        "Port": 9339,
-        "AutosaveSource": 1,
-        "CopySources": true,
-        "AdditionalSources": ""
-      },
-      "Debugger": {
-        "Executable": "bash",
-        "Arguments": "$(RadDebugWorkDir)/common/benchmark/pooling_benchmark.sh -v \"$(RadDebugAppArgs)\" -f \"$(RadDebugWorkDir)/gfx9/$(RadActiveSourceFile)\" -o \"$(RadDebugDataOutputPath)\"",
-        "WorkingDirectory": "/home/stud/gleb/radeon-asm-pooling/RadeonPooling",
-        "OutputPath": "$(RadDebugWorkDir)/tmp_dir/debug_result",
-        "BinaryOutput": true,
-        "ParseValidWatches": false,
-        "ValidWatchesFilePath": "",
-        "RunAsAdmin": false,
-        "TimeoutSecs": 0,
-        "OutputOffset": 0
+        "OutputPath": "",
+        "LocalOutputCopyPath": "",
+        "LineMarker": ""
       },
       "Disassembler": {
         "Executable": "",
@@ -128,10 +75,11 @@
         "RunAsAdmin": false
       },
       "Build": {
-        "Executable": "",
-        "Arguments": "",
-        "WorkingDirectory": "",
-        "PreprocessedSource": "preprocessed_source.build.tmp"
+        "RunPreprocessor": false,
+        "RunDisassembler": false,
+        "Executable": "clang",
+        "Arguments": " -x assembler -target amdgcn--amdhsa -mcpu=gfx900 -mno-code-object-v3 -I$(RadDeployDir)/include -o /tmp/out.co $(RadDeployDir)/$(RadActiveSourceFile)",
+        "WorkingDirectory": "$(RadDeployDir)"
       }
     }
   }
